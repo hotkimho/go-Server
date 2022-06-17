@@ -1,7 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/joho/godotenv"
+	"log"
+	"os"
+)
 
 func main() {
-	fmt.Println("123")
+	config := godotenv.Load(".env")
+	if config != nil {
+		log.Fatal("Error loading dotenv")
+	}
+	fmt.Println(os.Getenv("TEST"))
 }
