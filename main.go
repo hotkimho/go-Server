@@ -2,24 +2,19 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"github.com/go-Server/model"
+	global "github.com/go-Server/config"
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
-
-var db *sql.DB
-var logger *zap.Logger
 
 func GetMysqlConnector() *sql.DB {
 	user := os.Getenv("DBUSER")
@@ -50,14 +45,8 @@ func GetMysqlConnector() *sql.DB {
 func indexHandler() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var user model.SignupRequestUser
-			json.NewDecoder(r.Body).Decode(&user)
-
-			body, _ := ioutil.ReadAll(r.Body)
-
-			fmt.Println(user, body)
-
-			fmt.Println("12")
+			fmt.Println("index page")
+			//fmt.Fprintf(w, user.Username)
 		},
 	)
 }
@@ -80,14 +69,14 @@ func main() {
 		log.Panic("Error loading dotenv")
 	}
 	//데이터 베이스 연결 객체 설정
-	db = GetMysqlConnector()
+	global.Db = GetMysqlConnector()
 	//로거 설정
-	logger, _ = zap.NewDevelopment()
-	defer logger.Sync()
+	global.Logger, _ = zap.NewDevelopment()
+	defer global.Logger.Sync()
 
 	router := mux.NewRouter()
 	router.Handle("/", indexHandler()).Methods("POST")
-	router.Handle("/auth/signup", sighUp()).Methods("POST")
+	router.Handle("/auth/signup", SighUp()).Methods("POST")
 	fmt.Println(uuid.New())
 	_ = http.ListenAndServe("127.0.0.1:3000", router)
 }
