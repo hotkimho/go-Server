@@ -35,6 +35,8 @@ func SighUp() http.Handler {
 			err = InsertUser(user)
 			if err != nil {
 				global.Logger.Error(err.Error())
+				w.WriteHeader(http.StatusConflict)
+				return
 			}
 			w.WriteHeader(http.StatusCreated)
 			global.Logger.Info("생성항 유저 : " + user.Username)
@@ -58,12 +60,33 @@ func GeneratePassword(password string) (string, error) {
 	return string(hash), nil
 }
 
+func DuplicateCheckUser(username string) error {
+	var selectedUsername string
+
+	err := global.Db.QueryRow(model.SelectUsernameQuery).Scan(&selectedUsername)
+	if err != nil {
+		return err
+	}
+	if selectedUsername == username {
+		return fmt.Errorf("이미 사용자가 존재합니다")
+	}
+	return nil
+}
+
 func InsertUser(user model.SignupRequestUser) error {
+	//유저 중복검사
+	err := DuplicateCheckUser(user.Username)
+	if err != nil {
+		return err
+	}
+
+	//비밀번호 해싱
 	hashedPassword, err := GeneratePassword(user.Password)
 	if err != nil {
 		return err
 	}
 
+	//uuid 생성
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		return err
@@ -71,8 +94,7 @@ func InsertUser(user model.SignupRequestUser) error {
 	fmt.Println("hash:", hashedPassword)
 	fmt.Println("uuid:", uuid)
 
-	const insertQuery string = "INSERT INTO user (uuid, username, password) value(?, ?, ?)"
-	_, err = global.Db.Exec(insertQuery,
+	_, err = global.Db.Exec(model.InsertUserQuery,
 		uuid, user.Username, hashedPassword)
 	if err != nil {
 		return err

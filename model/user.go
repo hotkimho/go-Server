@@ -1,6 +1,8 @@
 package model
 
 const PasswordReg = `/^[A-Za-z0-9]{6,12}$/`
+const InsertUserQuery string = "INSERT INTO user (uuid, username, password) value(?, ?, ?)"
+const SelectUsernameQuery string = "SELECT username FROM user"
 
 type SignupRequestUser struct {
 	Username string `validate:"required"`
@@ -13,6 +15,16 @@ type User struct {
 	Password string
 }
 
+/*
+
+CREATE TABLE IF NOT EXISTS user (
+uuid VARCHAR(36) NOT NULL,
+username TEXT NOT NULL,
+password TEXT NOT NULL,
+created_time DATETIME DEFAULT  CURRENT_TIMESTAMP,
+primary key(uuid)
+);
+*/
 // Session
 // 생성한 Query
 //CREATE TABLE IF NOT EXISTS user_session (

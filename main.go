@@ -6,7 +6,6 @@ import (
 	global "github.com/go-Server/config"
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -73,10 +72,11 @@ func main() {
 	//로거 설정
 	global.Logger, _ = zap.NewDevelopment()
 	defer global.Logger.Sync()
+	defer global.Db.Close()
 
 	router := mux.NewRouter()
 	router.Handle("/", indexHandler()).Methods("POST")
 	router.Handle("/auth/signup", SighUp()).Methods("POST")
-	fmt.Println(uuid.New())
+
 	_ = http.ListenAndServe("127.0.0.1:3000", router)
 }
