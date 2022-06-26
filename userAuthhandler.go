@@ -63,7 +63,7 @@ func GeneratePassword(password string) (string, error) {
 func DuplicateCheckUser(username string) error {
 	var selectedUsername string
 
-	err := global.Db.QueryRow(model.SelectUsernameQuery).Scan(&selectedUsername)
+	err := global.Db.QueryRow(model.SelectUsernameQuery, username).Scan(&selectedUsername)
 	if err != nil {
 		return err
 	}

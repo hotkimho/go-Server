@@ -2,7 +2,7 @@ package model
 
 const PasswordReg = `/^[A-Za-z0-9]{6,12}$/`
 const InsertUserQuery string = "INSERT INTO user (uuid, username, password) value(?, ?, ?)"
-const SelectUsernameQuery string = "SELECT username FROM user"
+const SelectUsernameQuery string = "SELECT username FROM user WHERE username=?"
 
 type SignupRequestUser struct {
 	Username string `validate:"required"`
