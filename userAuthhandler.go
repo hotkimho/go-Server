@@ -2,12 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	users "github.com/go-Server/auth/users"
 	global "github.com/go-Server/config"
 	"github.com/go-Server/model"
-	"github.com/go-playground/validator"
 	"github.com/gofrs/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -16,88 +14,90 @@ var sessions = map[string]string{}
 func SighUp() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			//Post 요청이 아니면 바로 종료
+			if r.Method != http.MethodPost {
+				global.Logger.Error("not Post Request")
+				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
+				return
+			}
+
+			//json으로 데이터를 가져온다
 			var user model.SignupRequestUser
 			err := json.NewDecoder(r.Body).Decode(&user)
 			if err != nil {
 				global.Logger.Error(err.Error())
-				w.WriteHeader(http.StatusBadRequest)
+				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
 				return
 			}
 
 			//Validate Request Value
-			if ValidateRequestUser(user) == false {
+			if users.ValidateRequestUser(user) == false {
 				global.Logger.Error("Bad request to Signup")
-				w.WriteHeader(http.StatusBadRequest)
+				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
 				return
 			}
 
 			//Insert Database
-			err = InsertUser(user)
+			err = users.InsertUser(user)
 			if err != nil {
 				global.Logger.Error(err.Error())
-				w.WriteHeader(http.StatusConflict)
+				http.Error(w, "사용자가 이미 존재합니다", http.StatusConflict)
 				return
 			}
-			w.WriteHeader(http.StatusCreated)
-			global.Logger.Info("생성항 유저 : " + user.Username)
+			http.Error(w, "회원가입이 성공했습니다", http.StatusCreated)
+			global.Logger.Info("생성한 유저 : " + user.Username)
 		})
 }
 
-func ValidateRequestUser(user model.SignupRequestUser) bool {
-	validate := validator.New()
-	err := validate.Struct(user)
-	if err != nil {
-		return false
-	}
-	return true
-}
+func Login() http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			//이미 로그인된 경우는 index 페이지로 이동
+			//이동 코드
 
-func GeneratePassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
-}
+			//Post 요청이 아닌경우 종료
+			if r.Method != http.MethodPost {
+				global.Logger.Error("Not Post Request")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-func DuplicateCheckUser(username string) error {
-	var selectedUsername string
+			//Request Body 데이터를  JSON으로 변환
+			var user model.SignupRequestUser
+			err := json.NewDecoder(r.Body).Decode(&user)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
+				return
+			}
 
-	err := global.Db.QueryRow(model.SelectUsernameQuery, username).Scan(&selectedUsername)
-	if err != nil {
-		return err
-	}
-	if selectedUsername == username {
-		return fmt.Errorf("이미 사용자가 존재합니다")
-	}
-	return nil
-}
+			//로그인으로된 입력값도 검증을 해야할까?
+			//해야한다면 검증 코드
 
-func InsertUser(user model.SignupRequestUser) error {
-	//유저 중복검사
-	err := DuplicateCheckUser(user.Username)
-	if err != nil {
-		return err
-	}
+			//사용자, 비밀번호 확인
+			err = users.CheckLoginRequest(user.Username, user.Password)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "아이디 또는 비밀번호가 일치하지 않습니다", http.StatusBadRequest)
+				return
+			}
 
-	//비밀번호 해싱
-	hashedPassword, err := GeneratePassword(user.Password)
-	if err != nil {
-		return err
-	}
+			newUuid, _ := uuid.NewV4()
+			userUuid, ok := users.GetUserUuid(user.Username)
+			if ok == false {
+				global.Logger.Error("Failed select username in users table")
+				http.Error(w, "잘못된 요청입니다.", http.StatusBadRequest)
+				return
+			}
+			sessions[newUuid.String()] = userUuid
+			cookie := http.Cookie{
+				Name:     "session",
+				Value:    newUuid.String(),
+				HttpOnly: true,
+			}
 
-	//uuid 생성
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		return err
-	}
-	fmt.Println("hash:", hashedPassword)
-	fmt.Println("uuid:", uuid)
-
-	_, err = global.Db.Exec(model.InsertUserQuery,
-		uuid, user.Username, hashedPassword)
-	if err != nil {
-		return err
-	}
-	return nil
+			w.Header().Set("Set-Cookie", cookie.String())
+			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
+			return
+		})
 }

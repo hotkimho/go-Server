@@ -45,7 +45,7 @@ func indexHandler() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("index page")
-			//fmt.Fprintf(w, user.Username)
+			//fmt.Fprintf(w, users.Username)
 		},
 	)
 }
@@ -77,6 +77,6 @@ func main() {
 	router := mux.NewRouter()
 	router.Handle("/", indexHandler()).Methods("POST")
 	router.Handle("/auth/signup", SighUp()).Methods("POST")
-
+	router.Handle("/auth/login", Login()).Methods("POST")
 	_ = http.ListenAndServe("127.0.0.1:3000", router)
 }
