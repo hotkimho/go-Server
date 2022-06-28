@@ -78,5 +78,6 @@ func main() {
 	router.Handle("/", indexHandler()).Methods("POST")
 	router.Handle("/auth/signup", SighUp()).Methods("POST")
 	router.Handle("/auth/login", Login()).Methods("POST")
+	router.Handle("/auth/test", LoginAuth(indexHandler())).Methods("POST")
 	_ = http.ListenAndServe("127.0.0.1:3000", router)
 }

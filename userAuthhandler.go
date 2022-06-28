@@ -2,14 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	users "github.com/go-Server/auth/users"
 	global "github.com/go-Server/config"
 	"github.com/go-Server/model"
 	"github.com/gofrs/uuid"
 	"net/http"
+	"time"
 )
 
-var sessions = map[string]string{}
+//일단 DB에 저장해서 구현해보자 사용 X
+//var sessions = map[string]string{}
 
 func SighUp() http.Handler {
 	return http.HandlerFunc(
@@ -29,11 +32,11 @@ func SighUp() http.Handler {
 				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
 				return
 			}
-
+			fmt.Println(user.Username, user.Password)
 			//Validate Request Value
 			if users.ValidateRequestUser(user) == false {
 				global.Logger.Error("Bad request to Signup")
-				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
+				http.Error(w, "", http.StatusBadRequest)
 				return
 			}
 
@@ -71,10 +74,6 @@ func Login() http.Handler {
 				return
 			}
 
-			//로그인으로된 입력값도 검증을 해야할까?
-			//해야한다면 검증 코드
-
-			//사용자, 비밀번호 확인
 			err = users.CheckLoginRequest(user.Username, user.Password)
 			if err != nil {
 				global.Logger.Error(err.Error())
@@ -85,19 +84,54 @@ func Login() http.Handler {
 			newUuid, _ := uuid.NewV4()
 			userUuid, ok := users.GetUserUuid(user.Username)
 			if ok == false {
-				global.Logger.Error("Failed select username in users table")
-				http.Error(w, "잘못된 요청입니다.", http.StatusBadRequest)
+				http.Error(w, "아이디 또는 비밀번호가 일치하지 않습니다", http.StatusBadRequest)
 				return
 			}
-			sessions[newUuid.String()] = userUuid
-			cookie := http.Cookie{
-				Name:     "session",
-				Value:    newUuid.String(),
-				HttpOnly: true,
+			userSession := model.Session{SessionId: newUuid.String(), UserId: userUuid}
+
+			err = InsertSession(userSession)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 실패했습니다", http.StatusBadRequest)
 			}
 
+			cookie := GetCookieSetToSession(userSession)
 			w.Header().Set("Set-Cookie", cookie.String())
 			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
 			return
 		})
+}
+
+func GetCookieSetToSession(session model.Session) http.Cookie {
+	exp := time.Now().Add(time.Minute * 15)
+	cookie := http.Cookie{
+		Name:     "session",
+		Value:    session.SessionId,
+		HttpOnly: true,
+		Expires:  exp,
+	}
+	return cookie
+}
+
+func InsertSession(session model.Session) error {
+	_, err := global.Db.Exec(model.InsertSessionQuery, session.SessionId, session.UserId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func LoginAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie("session")
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			}
+			fmt.Println(cookie)
+			next.ServeHTTP(w, r)
+		},
+	)
 }
