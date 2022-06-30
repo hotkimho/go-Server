@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	users "github.com/go-Server/auth/users"
@@ -88,40 +89,22 @@ func Login() http.Handler {
 				return
 			}
 			userSession := model.Session{SessionId: newUuid.String(), UserId: userUuid}
-
-			err = InsertSession(userSession)
+			ctx := context.Background()
+			err = global.Rdb.Set(ctx, newUuid.String(), userUuid, time.Minute*model.SessionExpiryTime).Err()
 			if err != nil {
 				global.Logger.Error(err.Error())
 				http.Error(w, "로그인이 실패했습니다", http.StatusBadRequest)
 			}
 
-			cookie := GetCookieSetToSession(userSession)
+			cookie := users.GetCookie(userSession)
 			w.Header().Set("Set-Cookie", cookie.String())
 			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
 			return
 		})
 }
 
-func GetCookieSetToSession(session model.Session) http.Cookie {
-	exp := time.Now().Add(time.Minute * 15)
-	cookie := http.Cookie{
-		Name:     "session",
-		Value:    session.SessionId,
-		HttpOnly: true,
-		Expires:  exp,
-	}
-	return cookie
-}
-
-func InsertSession(session model.Session) error {
-	_, err := global.Db.Exec(model.InsertSessionQuery, session.SessionId, session.UserId)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func LoginAuth(next http.Handler) http.Handler {
+//로그인을 확인하는 미들웨어
+func AuthenticateLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("session")

@@ -5,6 +5,8 @@ import (
 	global "github.com/go-Server/config"
 	"github.com/go-Server/model"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
+	"time"
 )
 
 func GetUserUuid(username string) (string, bool) {
@@ -46,4 +48,15 @@ func CheckLoginRequest(username, password string) error {
 		return err
 	}
 	return nil
+}
+
+func GetCookie(session model.Session) http.Cookie {
+	exp := time.Now().Add(time.Minute * model.SessionExpiryTime)
+	cookie := http.Cookie{
+		Name:     "session",
+		Value:    session.SessionId,
+		HttpOnly: true,
+		Expires:  exp,
+	}
+	return cookie
 }
