@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	global "github.com/go-Server/config"
 	"github.com/go-Server/model"
+	"github.com/go-redis/redis/v8"
 	"net/http"
 	"strconv"
 )
@@ -19,10 +21,8 @@ func GetBoard() http.Handler {
 			if page > 0 {
 				page = page - 1
 			}
-			fmt.Println(page)
-			fmt.Println(page*10, page*10+limit)
+
 			selectAllBoardQuery := fmt.Sprintf("SELECT postId, title, writer, content , created_at, view FROM post limit %d, %d", page*10, page*10+limit)
-			fmt.Println(selectAllBoardQuery)
 			rows, err := global.Db.Query(selectAllBoardQuery)
 			if err != nil {
 				global.Logger.Error(err.Error())
@@ -63,7 +63,8 @@ func CreatePost() http.Handler {
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodPost {
 				global.Logger.Error("Not Post Request")
-				w.WriteHeader(http.StatusBadRequest)
+				http.Error(w, "POST 메소드가 아닙니다.", http.StatusBadRequest)
+				fmt.Println("QWEQWEQe")
 				return
 			}
 
@@ -75,8 +76,173 @@ func CreatePost() http.Handler {
 				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
 				return
 			}
-			cookie, _ := r.Cookie("sessionId")
-			fmt.Println(cookie.Value)
+
+			cookie, err := r.Cookie("sessionId")
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			}
+
+			ctx := context.Background()
+			getUuidFromCookie, err := global.Rdb.Get(ctx, cookie.Value).Result()
+			if err == redis.Nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			} else if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글쓰기가 실패했습니다..", http.StatusUnauthorized)
+				return
+			}
+
+			//쿠키의 세션으로 사용자의 닉네임을 가져온다.
+			var username string
+			err = global.Db.QueryRow("SELECT username FROM user WHERE uuid=?", getUuidFromCookie).Scan(&username)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글쓰기가 실패했습니다..", http.StatusUnauthorized)
+				return
+			}
+
+			//가져온 사용자 정보로 글을 생성한다.
+			_, err = global.Db.Exec("INSERT INTO post(title, content, writer, userId) VALUES (?, ?, ?, ?)",
+				createPost.Title, createPost.Content, username, getUuidFromCookie)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글쓰기가 실패했습니다..", http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, "글쓰기가 성공했습니다", http.StatusCreated)
+			return
+		},
+	)
+}
+
+func DeletePost() http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodDelete {
+				global.Logger.Error("Not DELETE Method")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			postId := r.URL.Query().Get("postId")
+			cookie, err := r.Cookie("sessionId")
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			}
+
+			//삭제할 게시글이 사용자의 소유글인지 확인
+			ctx := context.Background()
+			getUuidFromCookie, err := global.Rdb.Get(ctx, cookie.Value).Result()
+			if err == redis.Nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			} else if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글쓰기가 실패했습니다..", http.StatusUnauthorized)
+				return
+			}
+
+			//삭제할 게시글의 소유자를 가져온다.
+			var userUuid string
+			err = global.Db.QueryRow("SELECT userId FROM post WHERE postId=?", postId).Scan(&userUuid)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글쓰기가 실패했습니다..", http.StatusUnauthorized)
+				return
+			}
+			//삭제하는 사람과 삭제할 사람이 동일한 사람인지 검사
+			if getUuidFromCookie != userUuid {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글쓰기가 실패했습니다..", http.StatusUnauthorized)
+				return
+			}
+
+			//가져온 사용자 정보로 글을 생성한다.
+			_, err = global.Db.Exec("DELETE FROM post WHERE postId = ? ", postId)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글쓰기가 실패했습니다..", http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, "게시글 삭제가 성공했습니다", http.StatusOK)
+			return
+		},
+	)
+}
+
+func EditPost() http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPatch {
+				global.Logger.Error("Not PATCH Request")
+				http.Error(w, "PATCH 메소드가 아닙니다.", http.StatusBadRequest)
+				return
+			}
+
+			//수정할 게시글의 ID
+			postId := r.URL.Query().Get("postId")
+
+			//Request Body 데이터를  JSON으로 변환
+			var editPost model.RequestPost
+			err := json.NewDecoder(r.Body).Decode(&editPost)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
+				return
+			}
+
+			//쿠키에 담긴 세션ID를 가져온다.
+			cookie, err := r.Cookie("sessionId")
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			}
+
+			//레디스 서버에 uuid를 얻기위해 세션ID를 키값 사용합니다.
+			ctx := context.Background()
+			getUuidFromCookie, err := global.Rdb.Get(ctx, cookie.Value).Result()
+			if err == redis.Nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			} else if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글수정이 실패했습니다.", http.StatusBadRequest)
+				return
+			}
+
+			var userUuid string
+			err = global.Db.QueryRow("SELECT userId FROM post WHERE postId=?", postId).Scan(&userUuid)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글수정이 실패했습니다.", http.StatusBadRequest)
+				return
+			}
+			//삭제하는 사람과 삭제할 사람이 동일한 사람인지 검사
+			if getUuidFromCookie != userUuid {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글수정이 실패했습니다.", http.StatusBadRequest)
+				return
+			}
+
+			//가져온 사용자 정보로 글을 생성한다.
+			_, err = global.Db.Exec("UPDATE post set title = ?, content = ? WHERE postId = ?",
+				editPost.Title, editPost.Content, postId)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "글수정이 실패했습니다..", http.StatusBadRequest)
+				return
+			}
+			http.Error(w, "글 수정이 성공했습니다", http.StatusOK)
+			return
 		},
 	)
 }

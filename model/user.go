@@ -9,7 +9,7 @@ const SelectUsernameQuery string = "SELECT username FROM user WHERE username=?"
 const SelectUsernamdAndPassworQuery string = "select username, password from user where username=?"
 const SelectUserUuid string = "select uuid from user where username=?"
 
-const SessionExpiryTime time.Duration = 2
+const SessionExpiryTime time.Duration = 10
 
 type SignupRequestUser struct {
 	Username string `validate:"required"`

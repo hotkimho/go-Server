@@ -79,15 +79,18 @@ func main() {
 	router.Handle("/", indexHandler()).Methods("GET", "POST")
 	router.Handle("/auth/signup", SighUp()).Methods("POST")
 	router.Handle("/auth/login", Login()).Methods("POST")
-	router.Handle("/auth/test", AuthenticateLogin(indexHandler())).Methods("POST")
+	router.Handle("/auth/test", SessionAuthenticate(indexHandler())).Methods("POST")
 
 	router.Handle("/board", GetBoard()).Methods("GET")
-	router.Handle("/board/post", CreatePost()).Methods("POST")
+	router.Handle("/board/post", SessionAuthenticate(CreatePost())).Methods("POST")
+	router.Handle("/board/post", SessionAuthenticate(DeletePost())).Methods("DELETE")
+	router.Handle("/board/post", SessionAuthenticate(EditPost())).Methods("PATCH")
 	fmt.Println("서버가 시작되었습니다.")
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"},
 		AllowCredentials: true,
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPatch},
 	})
 
 	handler := corsHandler.Handler(router)

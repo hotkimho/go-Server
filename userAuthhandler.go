@@ -7,6 +7,7 @@ import (
 	users "github.com/go-Server/auth/users"
 	global "github.com/go-Server/config"
 	"github.com/go-Server/model"
+	"github.com/go-redis/redis/v8"
 	"github.com/gofrs/uuid"
 	"net/http"
 	"time"
@@ -102,7 +103,7 @@ func Login() http.Handler {
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
-				MaxAge:   300,
+				MaxAge:   600,
 			})
 			userSessiontoJson, _ := json.Marshal(userSession)
 
@@ -117,16 +118,32 @@ func Login() http.Handler {
 }
 
 //로그인을 확인하는 미들웨어
-func AuthenticateLogin(next http.Handler) http.Handler {
+func SessionAuthenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie("session")
+			//쿠키에 있는 세션값을 조회
+			cookie, err := r.Cookie("sessionId")
 			if err != nil {
 				global.Logger.Error(err.Error())
 				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
 				return
 			}
-			fmt.Println(cookie)
+
+			//세션의 쿠키값이 있으면 사용자로 인식
+			//로그인 확인할 땐, 레디스에서 확인하고 DB에 쿼리를 날리지 않는다!!!!!
+			ctx := context.Background()
+			_, err = global.Rdb.Get(ctx, cookie.Value).Result()
+			if err == redis.Nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			} else if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "접근에 실패했습니다.", http.StatusUnauthorized)
+				return
+			}
+
+			//이 과정을 거치면 사용자로 인식하고 다음 미들웨어, 핸들러로 이동
 			next.ServeHTTP(w, r)
 		},
 	)
