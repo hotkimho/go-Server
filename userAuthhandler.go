@@ -96,19 +96,22 @@ func Login() http.Handler {
 				http.Error(w, "로그인이 실패했습니다", http.StatusBadRequest)
 			}
 
-			//cookie := users.GetCookie(userSession)
-			//w.Header().Set("Set-Cookie", cookie.String())
 			http.SetCookie(w, &http.Cookie{
-				Name:     userSession.SessionId,
+				Name:     "sessionId",
 				Value:    userSession.SessionId,
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
+				MaxAge:   300,
 			})
+			userSessiontoJson, _ := json.Marshal(userSession)
 
-			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
+			//전역 상태를 관리할 수 없으므로 임시로 세션값을 넘겨줘서 localstorage에 저장하여 사용한다.
+			//전역 상태 contextAPI를 배워서 로그인 상태를 저장하고 이 코드는 삭제할것
+			http.Error(w, string([]byte(userSessiontoJson)), http.StatusOK)
 			fmt.Println("key session id", userSession.SessionId)
 			fmt.Println("value user id", userSession.UserId)
+
 			return
 		})
 }

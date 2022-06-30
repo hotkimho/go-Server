@@ -82,6 +82,7 @@ func main() {
 	router.Handle("/auth/test", AuthenticateLogin(indexHandler())).Methods("POST")
 
 	router.Handle("/board", GetBoard()).Methods("GET")
+	router.Handle("/board/post", CreatePost()).Methods("POST")
 	fmt.Println("서버가 시작되었습니다.")
 
 	corsHandler := cors.New(cors.Options{
