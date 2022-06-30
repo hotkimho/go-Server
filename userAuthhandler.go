@@ -96,9 +96,19 @@ func Login() http.Handler {
 				http.Error(w, "로그인이 실패했습니다", http.StatusBadRequest)
 			}
 
-			cookie := users.GetCookie(userSession)
-			w.Header().Set("Set-Cookie", cookie.String())
+			//cookie := users.GetCookie(userSession)
+			//w.Header().Set("Set-Cookie", cookie.String())
+			http.SetCookie(w, &http.Cookie{
+				Name:     userSession.SessionId,
+				Value:    userSession.SessionId,
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+			})
+
 			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
+			fmt.Println("key session id", userSession.SessionId)
+			fmt.Println("value user id", userSession.UserId)
 			return
 		})
 }

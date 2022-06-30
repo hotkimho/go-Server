@@ -9,6 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
@@ -45,7 +46,7 @@ func GetMysqlConnector() *sql.DB {
 func indexHandler() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("로그인 성공")
+
 			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
 			//fmt.Fprintf(w, users.Username)
 		},
@@ -75,10 +76,20 @@ func main() {
 	})
 
 	router := mux.NewRouter()
-	router.Handle("/", indexHandler()).Methods("GET")
+	router.Handle("/", indexHandler()).Methods("GET", "POST")
 	router.Handle("/auth/signup", SighUp()).Methods("POST")
 	router.Handle("/auth/login", Login()).Methods("POST")
 	router.Handle("/auth/test", AuthenticateLogin(indexHandler())).Methods("POST")
+
+	router.Handle("/board", GetBoard()).Methods("GET")
 	fmt.Println("서버가 시작되었습니다.")
-	_ = http.ListenAndServe("127.0.0.1:3000", router)
+
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowCredentials: true,
+	})
+
+	handler := corsHandler.Handler(router)
+	_ = http.ListenAndServe("127.0.0.1:8000", handler)
+
 }

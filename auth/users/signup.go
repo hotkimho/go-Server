@@ -32,7 +32,6 @@ func DuplicateCheckUser(username string) error {
 	var selectedUsername string
 
 	err := global.Db.QueryRow(model.SelectUsernameQuery, username).Scan(&selectedUsername)
-	fmt.Println(err)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil

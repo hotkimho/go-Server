@@ -5,8 +5,6 @@ import (
 	global "github.com/go-Server/config"
 	"github.com/go-Server/model"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"time"
 )
 
 func GetUserUuid(username string) (string, bool) {
@@ -40,7 +38,7 @@ func CheckLoginRequest(username, password string) error {
 	if resultQuery.Err() != nil {
 		return resultQuery.Err()
 	}
-	resultQuery.Scan(&selectedUsername, &selectedPassword)
+	_ = resultQuery.Scan(&selectedUsername, &selectedPassword)
 
 	//비밀번호 검사
 	err = bcrypt.CompareHashAndPassword([]byte(selectedPassword), []byte(password))
@@ -50,13 +48,15 @@ func CheckLoginRequest(username, password string) error {
 	return nil
 }
 
-func GetCookie(session model.Session) http.Cookie {
-	exp := time.Now().Add(time.Minute * model.SessionExpiryTime)
-	cookie := http.Cookie{
-		Name:     "session",
-		Value:    session.SessionId,
-		HttpOnly: true,
-		Expires:  exp,
-	}
-	return cookie
-}
+//func GetCookie(session model.Session) http.Cookie {
+//	exp := time.Now().Add(time.Minute * model.SessionExpiryTime)
+//	cookie := http.Cookie{
+//		Name:     "session",
+//		Value:    session.SessionId,
+//		HttpOnly: false,
+//		Expires:  exp,
+//		Secure:   false,
+//		Path:     "/login",
+//	}
+//	return cookie
+//}

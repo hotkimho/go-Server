@@ -22,8 +22,8 @@ type User struct {
 	Password string
 }
 
-/*
-CREATE TABLE IF NOT EXISTS users (
+/* user 테이블 생성 쿼리
+CREATE TABLE IF NOT EXISTS user (
 uuid VARCHAR(36) NOT NULL,
 username TEXT NOT NULL,
 password TEXT NOT NULL,
@@ -32,33 +32,44 @@ primary key(uuid)
 );
 */
 
-// Session
-// 생성한 Query
-//CREATE TABLE IF NOT EXISTS user_session (
-//session_id TEXT NOT NULL,
-//user_id VARCHAR(36) NOT NULL,
-//created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-//FOREIGN KEY(user_id)
-//REFERENCES user(uuid)
-//);
-///*
+type Post struct {
+	postId    int
+	title     string
+	writer    string
+	content   string
+	view      int
+	createdAt string
+	userId    string
+}
+
+/* post 테이블 생성 쿼리
+CREATE TABLE IF NOT EXISTS post (
+postId int auto_increment,
+title TEXT NOT NULL,
+writer TEXT NOT NULL,
+content TEXT,
+view int NOT NULL DEFAULT 0,
+created_at DATE DEFAULT (current_date),
+userId VARCHAR(36) NOT NULL,
+primary key(postId),
+foreign key (userId) references user(uuid)
+);
+
+*/
+
+/*
+Session
+삭제된 테이블 및 구조체
+생성한 Query
+CREATE TABLE IF NOT EXISTS user_session (
+session_id TEXT NOT NULL,
+user_id VARCHAR(36) NOT NULL,
+created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY(user_id)
+REFERENCES user(uuid)
+);
+*/
 type Session struct {
 	SessionId string
 	UserId    string
 }
-
-/*
-CREATE EVENT
-	IF NOT EXISTS DELETE_LOGIN_SESSION
-ON SCHEDULE
-	EVERY 15 MINUTE
-
-
-*/
-
-/*
-DELIMITER $$
-CREATE PROCEDURE DELETE_LOGIN_SESSION()
-BEGIN
-
-*/
