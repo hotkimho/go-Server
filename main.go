@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	global "github.com/go-Server/config"
@@ -46,7 +45,8 @@ func GetMysqlConnector() *sql.DB {
 func indexHandler() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("index page")
+			fmt.Println("로그인 성공")
+			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
 			//fmt.Fprintf(w, users.Username)
 		},
 	)
@@ -67,22 +67,18 @@ func main() {
 	defer global.Db.Close()
 
 	//redis test
-	ctx := context.Background()
-	rdb := redis.NewClient(&redis.Options{
+
+	global.Rdb = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
-	err := rdb.Set(ctx, "kim", "ho", 0).Err()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(rdb.Get(ctx, "kim").Result())
 
 	router := mux.NewRouter()
-	router.Handle("/", indexHandler()).Methods("POST")
+	router.Handle("/", indexHandler()).Methods("GET")
 	router.Handle("/auth/signup", SighUp()).Methods("POST")
 	router.Handle("/auth/login", Login()).Methods("POST")
-	router.Handle("/auth/test", LoginAuth(indexHandler())).Methods("POST")
+	router.Handle("/auth/test", AuthenticateLogin(indexHandler())).Methods("POST")
+	fmt.Println("서버가 시작되었습니다.")
 	_ = http.ListenAndServe("127.0.0.1:3000", router)
 }

@@ -1,11 +1,15 @@
 package model
 
+import "time"
+
 const PasswordReg = `/^[A-Za-z0-9]{6,12}$/`
 const InsertUserQuery string = "INSERT INTO user (uuid, username, password) value(?, ?, ?)"
 const InsertSessionQuery string = "INSERT INTO user_session(session_id, user_id) value(?, ?)"
 const SelectUsernameQuery string = "SELECT username FROM user WHERE username=?"
 const SelectUsernamdAndPassworQuery string = "select username, password from user where username=?"
 const SelectUserUuid string = "select uuid from user where username=?"
+
+const SessionExpiryTime time.Duration = 2
 
 type SignupRequestUser struct {
 	Username string `validate:"required"`
