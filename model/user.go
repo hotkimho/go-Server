@@ -33,13 +33,11 @@ primary key(uuid)
 */
 
 type Post struct {
-	postId    int
-	title     string
-	writer    string
-	content   string
-	view      int
-	createdAt string
-	userId    string
+	PostId  int    `json:"id"`
+	Title   string `json:"title"`
+	Writer  string `json:"writer"`
+	Content string `json:"content"`
+	View    int    `json:"view"`
 }
 
 /* post 테이블 생성 쿼리
