@@ -5,12 +5,16 @@
 ## 기술 스택
 ### Backend
 언어 : golang
+
 프레임워크 : 없음(golang 내장 함수)
+
 database : mysql
+
 etc : redis
 
 ### Frontend
 언어 : javascript
+
 프레임워크 : react
 
 ## Todo
