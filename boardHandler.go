@@ -61,13 +61,6 @@ func GetBoard() http.Handler {
 func CreatePost() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodPost {
-				global.Logger.Error("Not Post Request")
-				http.Error(w, "POST 메소드가 아닙니다.", http.StatusBadRequest)
-				fmt.Println("QWEQWEQe")
-				return
-			}
-
 			//Request Body 데이터를  JSON으로 변환
 			var createPost model.RequestPost
 			err := json.NewDecoder(r.Body).Decode(&createPost)
@@ -122,12 +115,6 @@ func CreatePost() http.Handler {
 func DeletePost() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodDelete {
-				global.Logger.Error("Not DELETE Method")
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
 			postId := r.URL.Query().Get("postId")
 			cookie, err := r.Cookie("sessionId")
 			if err != nil {
@@ -180,12 +167,6 @@ func DeletePost() http.Handler {
 func EditPost() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodPatch {
-				global.Logger.Error("Not PATCH Request")
-				http.Error(w, "PATCH 메소드가 아닙니다.", http.StatusBadRequest)
-				return
-			}
-
 			//수정할 게시글의 ID
 			postId := r.URL.Query().Get("postId")
 
@@ -242,6 +223,64 @@ func EditPost() http.Handler {
 				return
 			}
 			http.Error(w, "글 수정이 성공했습니다", http.StatusOK)
+			return
+		},
+	)
+}
+
+func GetPageOfBoard() http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			//수정할 게시글의 ID
+			postId := r.URL.Query().Get("postId")
+
+			//해당ㅇ 게시글에 맞는 글의 정보를 가져온다.
+			var resPost model.ReponsePost
+			err := global.Db.QueryRow("SELECT title, writer, content FROM post WHERE postId=?", postId).Scan(&resPost.Title, &resPost.Writer, &resPost.Content)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "게시글 불러오기가 실패했습니다.", http.StatusNotFound)
+				return
+			}
+
+			postToJson, err := json.Marshal(resPost)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "게시글 불러오기가 실패했습니다.", http.StatusNotFound)
+				return
+			}
+
+			http.Error(w, "", http.StatusOK)
+			w.Write(postToJson)
+			return
+		},
+	)
+}
+
+func GetPageOfBoardInLogin() http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			//수정할 게시글의 ID
+			postId := r.URL.Query().Get("postId")
+
+			//해당ㅇ 게시글에 맞는 글의 정보를 가져온다.
+			var resPost model.ReponsePost
+			err := global.Db.QueryRow("SELECT title, writer, content FROM post WHERE postId=?", postId).Scan(&resPost.Title, &resPost.Writer, &resPost.Content)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "게시글 불러오기가 실패했습니다.", http.StatusNotFound)
+				return
+			}
+
+			postToJson, err := json.Marshal(resPost)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "게시글 불러오기가 실패했습니다.", http.StatusNotFound)
+				return
+			}
+
+			http.Error(w, "", http.StatusOK)
+			w.Write(postToJson)
 			return
 		},
 	)
