@@ -133,6 +133,7 @@ func SessionAuthenticate(next http.Handler) http.Handler {
 			//로그인 확인할 땐, 레디스에서 확인하고 DB에 쿼리를 날리지 않는다!!!!!
 			ctx := context.Background()
 			_, err = global.Rdb.Get(ctx, cookie.Value).Result()
+			fmt.Println(err)
 			if err == redis.Nil {
 				global.Logger.Error(err.Error())
 				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
@@ -147,4 +148,39 @@ func SessionAuthenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		},
 	)
+}
+
+func Logout() http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("start logout")
+			cookie, err := r.Cookie("sessionId")
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			}
+
+			fmt.Println(cookie)
+			ctx := context.Background()
+			err = global.Rdb.Del(ctx, cookie.Value).Err()
+			if err == redis.Nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
+				return
+			} else if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "로그아웃이 실패했습니다.", http.StatusNotFound)
+				return
+			}
+			removeCookie := http.Cookie{
+				Name:     "sessionId",
+				Value:    "",
+				MaxAge:   0,
+				Path:     "/",
+				HttpOnly: true,
+			}
+			http.SetCookie(w, &removeCookie)
+			http.Error(w, "로그아웃이 완료되었습니다.", http.StatusOK)
+		})
 }
