@@ -35,6 +35,7 @@ etc : redis
 ## Backend
 ### 사용자 인증
 ![img.png](readmeImage/auth.png)
+
 `in memory` 기반의 Redis를 이용한 세션 로그인으로 구성되었습니다.
 
 로그인된 경우 서버에서 직접 조회, 아닌 경우 데이터베이스에 사용자 정보를 확인하여 로그인 합니다.
