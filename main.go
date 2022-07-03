@@ -3,11 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	global "github.com/go-Server/config"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	global "github.com/hotkimho/go-Server/config"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"go.uber.org/zap"

@@ -3,10 +3,10 @@ package users
 import (
 	"database/sql"
 	"fmt"
-	global "github.com/go-Server/config"
-	"github.com/go-Server/model"
 	"github.com/go-playground/validator"
 	"github.com/gofrs/uuid"
+	global "github.com/hotkimho/go-Server/config"
+	"github.com/hotkimho/go-Server/model"
 	"golang.org/x/crypto/bcrypt"
 )
 

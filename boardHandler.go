@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	global "github.com/go-Server/config"
-	"github.com/go-Server/model"
 	"github.com/go-redis/redis/v8"
+	global "github.com/hotkimho/go-Server/config"
+	"github.com/hotkimho/go-Server/model"
 	"net/http"
 	"strconv"
 )

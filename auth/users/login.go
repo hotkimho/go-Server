@@ -2,8 +2,8 @@ package users
 
 import (
 	"fmt"
-	global "github.com/go-Server/config"
-	"github.com/go-Server/model"
+	global "github.com/hotkimho/go-Server/config"
+	"github.com/hotkimho/go-Server/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
