@@ -1,20 +1,19 @@
-FROM golang:alpine AS builder
+FROM golang:alpine
 
-WORKDIR /build
+WORKDIR /app
 
-COPY go.mod go.sum main.go *.go ./
+COPY . .
+COPY go.mod ./
+COPY go.sum ./
+#COPY userAuthhandler.go ./
+##COPY boardHandler.go ./
+#COPY auth/users/*.go ./
+#COPY config/global.go ./
+#COPY model/*.go ./
 
 RUN go mod download
 
-RUN go build -o main .
-
-WORKDIR /dist
-
-RUN cp /build/main .
-
-FROM scratch
-
-COPY --from=builder /dist/main .
+RUN go build -o goserver .
 
 EXPOSE 8000
-ENTRYPOINT ["/main"]
+ENTRYPOINT ["./goserver"]
