@@ -6,7 +6,7 @@
 ### Backend
 언어 : golang
 
-프레임워크 : 없음(golang 내장 함수)
+프레임워크 : 없음(golang 내장 라이브러리)
 
 database : mysql
 
