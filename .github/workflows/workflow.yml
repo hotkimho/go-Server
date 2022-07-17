@@ -1,4 +1,0 @@
-name : auth-deploy-server
-on: [push]
-jobs:
-  deploy-server:
