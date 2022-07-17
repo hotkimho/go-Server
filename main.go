@@ -87,7 +87,7 @@ func main() {
 	router.Handle("/board/post", SessionAuthenticate(DeletePost())).Methods("DELETE")
 	router.Handle("/board/post", SessionAuthenticate(EditPost())).Methods("PATCH")
 
-	fmt.Println("서버가 시작되었습니다.")
+	fmt.Println("서버가 시작되었습니다. ")
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"https://www.hotkimho.com"},
