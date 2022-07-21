@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/hotkimho/go-Server/auth/users"
 	global "github.com/hotkimho/go-Server/config"
 	"github.com/hotkimho/go-Server/model"
 	"net/http"
@@ -257,6 +258,45 @@ func GetPageOfBoard() http.Handler {
 	)
 }
 
+func GetComment() http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			postId := r.URL.Query().Get("postId")
+
+			rows, err := global.Db.Query(model.SelectCommentInpostId, postId)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "게시글 불러오기가 실패했습니다.", http.StatusNotFound)
+				return
+			}
+			defer rows.Close()
+
+			var comments []model.Comment
+			for rows.Next() {
+				var comment model.Comment
+				_ = rows.Scan(&comment.Username, &comment.Content, &comment.CreatedAt)
+				comments = append(comments, comment)
+			}
+			err = rows.Err()
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "댓글을 불러오지 못했습니다", http.StatusNotFound)
+				return
+			}
+
+			commentToJson, err := json.Marshal(comments)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "댓글 변환이 실패했습니다", http.StatusNotFound)
+				return
+			}
+
+			http.Error(w, "", http.StatusOK)
+			w.Write(commentToJson)
+		})
+}
+
+//댓글 생성
 func CreateComment() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -276,7 +316,7 @@ func CreateComment() http.Handler {
 
 			//이미 로그인 검증을 했으므로 쿠키에선 에러처리를 하지 않는다.
 			cookie, _ := r.Cookie("sessionId")
-			uuid, err := getUuidInSession(cookie.Value)
+			uuid, err := users.GetUuidInSession(cookie.Value)
 			if err != nil {
 				global.Logger.Error(err.Error())
 				http.Error(w, "사용자 인증조회에 실패했습니다. 다시 시도해주세요", http.StatusUnauthorized)
@@ -301,16 +341,4 @@ func CreateComment() http.Handler {
 
 			http.Error(w, "댓글쓰기가 성공했습니다.", http.StatusOK)
 		})
-}
-
-func getUuidInSession(sessionId string) (username string, err error) {
-	ctx := context.Background()
-	username, err = global.Rdb.Get(ctx, sessionId).Result()
-	//redis를 조회하며, 사용자가 있으면 username을 리턴
-	if err == redis.Nil {
-		return "", err
-	} else if err != nil {
-		return "", err
-	}
-	return username, nil
 }

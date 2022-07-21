@@ -1,7 +1,13 @@
 package model
 
 const InsertComment string = "INSERT INTO comment (writer, content, userId, postId) value(?, ?, ?, ?)"
+const SelectCommentInpostId = "SELECT writer, content, created_at from comment where postId=?"
 
+type Comment struct {
+	Username  string `json:"username"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+}
 type RequestComment struct {
 	PostId  string `json:"postId"`
 	Content string `json:"content"`
@@ -17,6 +23,6 @@ userId VARCHAR(36) NOT NULL,
 postId int NOT NULL,
 primary key(commentId),
 foreign key (userId) references user(uuid),
-foreign key (commentId) references post(postId)
+foreign key (postId) references post(postId)
 );
 */

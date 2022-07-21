@@ -87,6 +87,9 @@ func main() {
 	router.Handle("/board/post", SessionAuthenticate(DeletePost())).Methods("DELETE")
 	router.Handle("/board/post", SessionAuthenticate(EditPost())).Methods("PATCH")
 
+	router.Handle("/board/post/comment", GetComment()).Methods("GET")
+	router.Handle("/board/post/comment", SessionAuthenticate(CreateComment())).Methods("POST")
+
 	fmt.Println("서버가 시작되었습니다. ")
 	//, https://www.hotkimho.com
 	corsHandler := cors.New(cors.Options{
