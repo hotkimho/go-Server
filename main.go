@@ -47,7 +47,7 @@ func indexHandler() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 
-			http.Error(w, "로그인이 성공했습니다", http.StatusOK)
+			http.Error(w, "API 인덱스 페이지입니다.", http.StatusOK)
 			//fmt.Fprintf(w, users.Username)
 		},
 	)
