@@ -91,9 +91,9 @@ func main() {
 	router.Handle("/board/post/comment", SessionAuthenticate(CreateComment())).Methods("POST")
 
 	fmt.Println("서버가 시작되었습니다. ")
-	//, https://www.hotkimho.com
+	//, http://localhost:3000
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedOrigins:   []string{"https://www.hotkimho.com"},
 		AllowCredentials: true,
 		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPatch},
 	})
