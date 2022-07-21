@@ -8,7 +8,7 @@ const InsertSessionQuery string = "INSERT INTO user_session(session_id, user_id)
 const SelectUsernameQuery string = "SELECT username FROM user WHERE username=?"
 const SelectUsernamdAndPassworQuery string = "select username, password from user where username=?"
 const SelectUserUuid string = "select uuid from user where username=?"
-
+const SelectUsernameInUuid = "select username from user where uuid=?"
 const SessionExpiryTime time.Duration = 10
 
 type SignupRequestUser struct {

@@ -1,7 +1,9 @@
 package users
 
 import (
+	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	global "github.com/hotkimho/go-Server/config"
 	"github.com/hotkimho/go-Server/model"
 	"golang.org/x/crypto/bcrypt"
@@ -48,15 +50,14 @@ func CheckLoginRequest(username, password string) error {
 	return nil
 }
 
-//func GetCookie(session model.Session) http.Cookie {
-//	exp := time.Now().Add(time.Minute * model.SessionExpiryTime)
-//	cookie := http.Cookie{
-//		Name:     "session",
-//		Value:    session.SessionId,
-//		HttpOnly: false,
-//		Expires:  exp,
-//		Secure:   false,
-//		Path:     "/login",
-//	}
-//	return cookie
-//}
+func GetUuidInSession(sessionId string) (username string, err error) {
+	ctx := context.Background()
+	username, err = global.Rdb.Get(ctx, sessionId).Result()
+	//redis를 조회하며, 사용자가 있으면 username을 리턴
+	if err == redis.Nil {
+		return "", err
+	} else if err != nil {
+		return "", err
+	}
+	return username, nil
+}

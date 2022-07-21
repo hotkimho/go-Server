@@ -133,7 +133,6 @@ func SessionAuthenticate(next http.Handler) http.Handler {
 			//로그인 확인할 땐, 레디스에서 확인하고 DB에 쿼리를 날리지 않는다!!!!!
 			ctx := context.Background()
 			_, err = global.Rdb.Get(ctx, cookie.Value).Result()
-			fmt.Println(err)
 			if err == redis.Nil {
 				global.Logger.Error(err.Error())
 				http.Error(w, "로그인이 필요합니다.", http.StatusUnauthorized)
