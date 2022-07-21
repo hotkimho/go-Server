@@ -257,31 +257,60 @@ func GetPageOfBoard() http.Handler {
 	)
 }
 
-func GetPageOfBoardInLogin() http.Handler {
+func CreateComment() http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			//수정할 게시글의 ID
-			postId := r.URL.Query().Get("postId")
-
-			//해당ㅇ 게시글에 맞는 글의 정보를 가져온다.
-			var resPost model.ReponsePost
-			err := global.Db.QueryRow("SELECT title, writer, content FROM post WHERE postId=?", postId).Scan(&resPost.Title, &resPost.Writer, &resPost.Content)
+			var requestComment model.RequestComment
+			err := json.NewDecoder(r.Body).Decode(&requestComment)
 			if err != nil {
 				global.Logger.Error(err.Error())
-				http.Error(w, "게시글 불러오기가 실패했습니다.", http.StatusNotFound)
+				http.Error(w, "잘못된 요청입니다", http.StatusBadRequest)
+				return
+			}
+			postId, err := strconv.Atoi(requestComment.PostId)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "잘못된 게시글입니다.", http.StatusBadRequest)
 				return
 			}
 
-			postToJson, err := json.Marshal(resPost)
+			//이미 로그인 검증을 했으므로 쿠키에선 에러처리를 하지 않는다.
+			cookie, _ := r.Cookie("sessionId")
+			uuid, err := getUuidInSession(cookie.Value)
 			if err != nil {
 				global.Logger.Error(err.Error())
-				http.Error(w, "게시글 불러오기가 실패했습니다.", http.StatusNotFound)
+				http.Error(w, "사용자 인증조회에 실패했습니다. 다시 시도해주세요", http.StatusUnauthorized)
+				return
+			}
+			//uuid를 통해 username을 가져온다.
+
+			var username string
+			err = global.Db.QueryRow(model.SelectUsernameInUuid, uuid).Scan(&username)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "사용자 조회에 실패했습니다.", http.StatusUnauthorized)
+				return
+			}
+			//검증이 끝난후, 입력받은 댓글을 데이터베이스에 저장한다.
+			_, err = global.Db.Exec(model.InsertComment, username, requestComment.Content, uuid, postId)
+			if err != nil {
+				global.Logger.Error(err.Error())
+				http.Error(w, "댓글 저장에 실패했습니다.", http.StatusBadRequest)
 				return
 			}
 
-			http.Error(w, "", http.StatusOK)
-			w.Write(postToJson)
-			return
-		},
-	)
+			http.Error(w, "댓글쓰기가 성공했습니다.", http.StatusOK)
+		})
+}
+
+func getUuidInSession(sessionId string) (username string, err error) {
+	ctx := context.Background()
+	username, err = global.Rdb.Get(ctx, sessionId).Result()
+	//redis를 조회하며, 사용자가 있으면 username을 리턴
+	if err == redis.Nil {
+		return "", err
+	} else if err != nil {
+		return "", err
+	}
+	return username, nil
 }
